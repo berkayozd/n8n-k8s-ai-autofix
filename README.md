@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 # n8n + Kubernetes Auto-Triage (with Gemini)
 
 An automated incident triage & auto-fix workflow built on **n8n**, targeting a demo **Kubernetes guestbook** app.
