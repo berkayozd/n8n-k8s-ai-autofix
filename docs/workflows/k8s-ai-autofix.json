@@ -1,0 +1,1395 @@
+{
+  "name": "k8s-ai-autofix",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "5a61dcc2-28ad-4539-b467-33cf0d0dcc5d",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "ae14664c-714d-4807-a786-adcb858d2faf",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c7614d74-435f-4126-bdc7-19de3dfd0aad",
+      "name": "OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        96,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Host",
+              "value": "guestbook.127.0.0.1.nip.io"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 5
+        }
+      },
+      "id": "d6bbcd86-8e9f-4330-9302-58210b5151a3",
+      "name": "HealthCheck",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -80,
+        -240
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function uuidv4(){\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);\n    return v.toString(16);\n  });\n}\nreturn [{ incident_id: uuidv4() }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -240
+      ],
+      "id": "563040fe-5b7f-4d0a-924c-3496fce90a9b",
+      "name": "Make Incident ID"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{$json.data && ($json.data.approved === true || $json.data.approved === \"true\") ? 1 : 0}}\n",
+        "looseTypeValidation": true
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2000,
+        -208
+      ],
+      "id": "9cd80b06-d520-4c85-acff-65b1b7663655",
+      "name": "Confirmation"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3072,
+        -96
+      ],
+      "id": "5ceee91b-2ba5-4f73-9daf-679d480a2779",
+      "name": "Wait 10s",
+      "webhookId": "8003d1ea-9665-492b-a6f3-cb00625085fc"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8ae258d0-7b50-4d01-a060-2f069fa24715",
+              "name": "incident_id",
+              "value": "={{ $('Make Incident ID').item.json.incident_id }}",
+              "type": "string"
+            },
+            {
+              "id": "cc2cff16-2512-46cd-91d4-d33a0ca5e51b",
+              "name": "statusCode",
+              "value": "={{$node[\"HealthCheck\"].json.statusCode}}",
+              "type": "number"
+            },
+            {
+              "id": "b1353a21-3808-4dec-8e97-0a57121affda",
+              "name": "error_text",
+              "value": "={{ $('HealthCheck').item.json.statusMessage }}",
+              "type": "string"
+            },
+            {
+              "id": "879660d8-918c-43b3-9eff-a0b5dc11c1b9",
+              "name": "service",
+              "value": "={{\n(() => {\n  const raw = ($node[\"GatherLogs\"].json.stdout || '').toString();\n  const svcName = raw.match(/kind:\\s*Service[\\s\\S]*?\\n\\s*name:\\s*([-\\w]+)/)?.[1] || 'frontend';\n  const ns = $json.ns || $node[\"Derive Target\"].json.ns || 'default';\n  return `${ns}/${svcName}`;\n})()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "efa4663b-5d9f-4d35-8c9d-ee3e5a12119d",
+              "name": "check_url",
+              "value": "http://host.docker.internal/",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        -240
+      ],
+      "id": "752999be-38b6-4ab5-8266-c635e8a993fe",
+      "name": "Prepare Incident Card"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "73e0cb4e-6ce6-47b9-bfad-e06b6545d573",
+              "name": "probe_summary",
+              "value": "={{ \n(() => {\n  const out = ($node[\"GatherLogs\"].json.stdout || \"\").toString();\n  const MAX = 18000;                 // big enough for SVC/EP/DEP/RS/logs/events\n  return out.length > MAX ? out.slice(0, MAX) + \"\\n...[truncated]\" : out;\n})()\n}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        -240
+      ],
+      "id": "a3bf17b2-f009-4766-9a8c-060f9722712b",
+      "name": "Assemble Evidence"
+    },
+    {
+      "parameters": {
+        "command": "=NS=\"{{ $json.ns || \"guestbook\" }}\"\nAPP=\"{{ $json.app || \"guestbook\" }}\"\nTIER=\"{{ $json.tier || \"frontend\" }}\"\nDEPLOY=\"{{ $json.deploy || \"frontend\" }}\"\nSVC=\"{{ $json.svc || \"frontend\" }}\"\n\necho \"apiVersion: v1\"\nkubectl -n \"$NS\" get svc \"$SVC\" -o yaml\n\necho '--- ENDPOINTS YAML ---'\nkubectl -n \"$NS\" get endpoints \"$SVC\" -o yaml\n\necho '--- DEPLOY YAML ---'\nkubectl -n \"$NS\" get deploy \"$DEPLOY\" -o yaml\n\necho '--- REPLICASETS JSON ---'\nkubectl -n \"$NS\" get rs -l app=\"$APP\",tier=\"$TIER\" -o json\n\necho '--- RS TABLE ---'\nkubectl -n \"$NS\" get rs -l app=\"$APP\",tier=\"$TIER\" \\\n  -o custom-columns=REVISION:.metadata.annotations.\"deployment\\.kubernetes\\.io/revision\",NAME:.metadata.name,IMAGE:.spec.template.spec.containers[0].image,READY:.status.readyReplicas \\\n  --no-headers 2>/dev/null || true\n\necho '--- POD NAME ---'\nkubectl -n \"$NS\" get pods -l app=\"$APP\",tier=\"$TIER\" \\\n  -o jsonpath='{.items[0].metadata.name}{\"\\n\"}' 2>/dev/null || echo \"<no-pod>\"\n\necho '--- LAST LOGS (tail=120) ---'\nPOD=\"$(kubectl -n \"$NS\" get pods -l app=\"$APP\",tier=\"$TIER\" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)\"\n[ -n \"$POD\" ] && kubectl -n \"$NS\" logs \"$POD\" --tail=120 || echo \"<no-pod>\"\n\necho '--- LAST EVENTS (10) ---'\nkubectl -n \"$NS\" get events --sort-by=.lastTimestamp | tail -n 10 || true\n\necho '--- ROLLOUT HISTORY ---'\nkubectl -n \"$NS\" rollout history deploy/\"$DEPLOY\" || true\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        304,
+        -240
+      ],
+      "id": "b0483d37-55d0-4b83-a186-9c986ff0c93d",
+      "name": "GatherLogs"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6bf89cf1-6435-45d5-aff1-0501599bfaf7",
+              "name": "ns",
+              "value": "={{ \n(() => {   \nconst raw = ($node[\"GatherLogs\"].json.stdout || '').toString();\nconst svcBlock = raw.split('--- ENDPOINTS YAML ---')[0] || raw;   const ns = (svcBlock.match(/\\n\\s*namespace:\\s*([-\\w]+)/)?.[1]) || 'default';   return ns.trim(); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "4fbfdcd8-3721-41d1-abc5-c7f90baad5eb",
+              "name": "deploy_name",
+              "value": "={{\n(() => {\n  const raw = (\n    $node[\"Assemble Evidence\"].json.probe_summary ||\n    $node[\"GatherLogs\"].json.stdout ||\n    ''\n  ).toString();\n\n  const podLine = raw.match(/--- POD NAME ---\\r?\\n([^\\r\\n]+)/)?.[1]?.trim();\n  if (podLine) {\n    return podLine\n      .replace(/^pod\\//, '')\n      // drop RS hash + optional pod-uniq suffix\n      .replace(/-[a-z0-9]{8,10}(?:-[a-z0-9]{4,6})?$/i, '')\n      .trim();\n  }\n\n  const depName = raw.match(/kind:\\s*Deployment[\\s\\S]*?\\n\\s*name:\\s*([-\\w]+)/)?.[1];\n  if (depName) return depName.trim();\n})()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        -240
+      ],
+      "id": "97d9c5df-ffda-48ff-9829-40a9b31b67d5",
+      "name": "Derive Target"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a Kubernetes incident triage assistant. \nGiven only the evidence (HealthCheck summary + raw SVC/Endpoints/Deployment YAML, ReplicaSets JSON and table, last pod logs, cluster events, rollout history), infer the most likely root cause and propose a single safe kubectl command that directly mitigates it. \nIf there is no safe one-liner fix, return \"N/A\".\n\nReturn only this JSON:\n{\"class\":\"<short>\",\"confidence\":\"<0..1>\",\"summary_en\":\"<1–2 sentence summary>\",\"suggestion_cmd\":\"<kubectl or N/A>\",\"risk\":\"<low|medium|high>\"}\n\nRules:\n- Do not invent names; use values seen in the evidence.\n- Prefer the lowest-risk command (e.g., patching a wrong selector, setting a correct image tag, or rolling back) when clearly supported by evidence.\n- If evidence is insufficient or the command could be harmful, return \"N/A\".\n",
+              "role": "model"
+            },
+            {
+              "content": "=INCIDENT {{ $node[\"Make Incident ID\"].json.incident_id }}\nNAMESPACE: {{ $node[\"Derive Target\"].json.ns }}\nDEPLOYMENT: {{ $node[\"Derive Target\"].json.deploy_name }}\n\nHEALTHCHECK:\n{{ $('HealthCheck').item.json.data }}\n\nEVIDENCE:\n{{ $node[\"Assemble Evidence\"].json.probe_summary }}\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "maxOutputTokens": 200,
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -240
+      ],
+      "id": "0badda4b-001a-48e7-8e27-dd77327b9bf3",
+      "name": "Gemini Diagnose",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "S2dG5Evlk0vkGj0Z",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22e1817a-998e-4510-9360-acc1409fe032",
+              "name": "class",
+              "value": "={{ JSON.parse($json.content.parts[0].text).class }}",
+              "type": "string"
+            },
+            {
+              "id": "44b421ff-c8b6-49f5-9321-68cd8bffd331",
+              "name": "confidence",
+              "value": "={{\n(() => {\n  const raw = JSON.parse($json.content.parts[0].text).confidence;\n  if (raw == null) return 0;\n\n  // Sayı gibi ise sayıya çevir\n  const n = Number(raw);\n  if (!isNaN(n)) return n;\n\n  // Metin ise haritadan çevir\n  const map = { low: 0.3, medium: 0.6, high: 0.9, \"very high\": 0.95, \"very_low\": 0.1 };\n  return map[String(raw).toLowerCase()] ?? 0;\n})()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "6498c9ce-e29f-4518-99e8-b0765c56d987",
+              "name": "summary",
+              "value": "={{ (() => { \n  try { \n    const o = JSON.parse($node[\"Gemini Diagnose\"].json.content.parts[0].text);\n    return o.summary || o.summary_en || o.summary_tr || '';\n  } catch(e){ return '' } \n})() }}",
+              "type": "string"
+            },
+            {
+              "id": "0cec6f06-84f6-46c7-8941-15a659b2ad5c",
+              "name": "suggestion_cmd",
+              "value": "={{ (JSON.parse($json.content.parts[0].text).suggestion_cmd || '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "b0c85f5e-6eae-471f-a35e-b1bbdf6bff8c",
+              "name": "risk",
+              "value": "={{ JSON.parse($json.content.parts[0].text).risk }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        -240
+      ],
+      "id": "1f2f26f3-fb42-4dc7-b337-bbcf0aa369d2",
+      "name": "Parse AI JSON"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const sug = String($node[\"Parse AI JSON\"].json.suggestion_cmd || \"\").trim();\n\nif (!/^kubectl\\b/i.test(sug)) {\n  return { json: { cmd: \"N/A\" } };\n}\n\nconst ns = String($node[\"Derive Target\"].json.ns || \"guestbook\").trim();\nlet out = sug;\nif (!/\\s-n\\s+\\S+/.test(out)) {\n  out = out.replace(/^kubectl\\b/i, `kubectl -n ${ns}`);\n}\n\nreturn { json: { cmd: out } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        -224
+      ],
+      "id": "5107456a-dbad-4344-8d8d-e6df78d1dde7",
+      "name": "Harden Command"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "message": "=🚨 Health check failed. Collecting Kubernetes evidence and running diagnosis.\n*Incident:* {{ ($node[\"Prepare Incident Card\"].json.incident_id || '').slice(0,3) }}\n*AI Summary:* {{$node[\"Parse AI JSON\"].json.summary}}\n*AI Suggestion:* `{{$node[\"Parse AI JSON\"].json.suggestion_cmd}}`\nWill apply: `{{ $node[\"Harden Command\"].json.cmd }}`\n(Risk: {{$node[\"Parse AI JSON\"].json.risk}},\nConfidence: {{ Math.round(( $node[\"Parse AI JSON\"].json.confidence || 0 ) * 100) }}%)\n",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Apply Suggested Fix",
+            "disapproveLabel": "Proceed Manually"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 30,
+              "resumeUnit": "minutes"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1824,
+        -208
+      ],
+      "id": "c66343ce-e0ad-44fe-8347-32a0e1a08680",
+      "name": "Confirm Fix in Slack",
+      "webhookId": "ccbc217b-1c37-4b1e-ae3a-6a90cd55740d",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "text": "=🚨 Couldn't create safe command (N/A).\n*Incident:* {{ ($node[\"Prepare Incident Card\"].json.incident_id || '').slice(0,3) }}\nAI Summary: {{$node[\"Parse AI JSON\"].json.summary}}\nPlease review manually or try again with different evidence.\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1904,
+        -400
+      ],
+      "id": "b63c1e67-6951-4950-81ef-79d63f4afa77",
+      "name": "Notify Command Error",
+      "webhookId": "73562b1f-c015-45d0-a712-ed7c51c37b86",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$node[\"Prepare Incident Card\"].json.check_url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Host",
+              "value": "guestbook.127.0.0.1.nip.io"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3200,
+        -96
+      ],
+      "id": "c1fd5620-5649-4104-a90b-2462bad51c96",
+      "name": "Post-Fix HealthCheck",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "alwaysOutputData": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "text": "=⛔ The command could not be executed.\n*Incident:* {{ ($node[\"Prepare Incident Card\"].json.incident_id || '').slice(0,3) }}\n*Command:* `{{($node[\"Harden Command\"].json.cmd || '').trim()}}`\n*Error {{ $json.error || $json.stderr || 'n/a' }}\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2624,
+        -64
+      ],
+      "id": "bc54b4d8-01ca-4d68-bc4f-8a20377aa6c6",
+      "name": "Notify Execute Error",
+      "webhookId": "73562b1f-c015-45d0-a712-ed7c51c37b86",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "={{ $node[\"Harden Command\"].json.cmd }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        -192
+      ],
+      "id": "5b407bb0-6f34-470e-a11a-0c56b8e31f6f",
+      "name": "Apply Suggested Fix",
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ec62a43a-e457-446b-b2a0-9d4635dfb5cd",
+              "leftValue": "={{$node[\"Post-Fix HealthCheck\"].json.statusCode >= 200 && \n  $node[\"Post-Fix HealthCheck\"].json.statusCode < 300}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3520,
+        -96
+      ],
+      "id": "1fce5844-c8f6-468c-b5c7-c111d6db84d2",
+      "name": "Is Healthy?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3f02b476-5f58-4303-9bdb-a643270508cf",
+              "leftValue": "={{$json.cmd}}",
+              "rightValue": "N/A",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1632,
+        -224
+      ],
+      "id": "9258e722-7c07-4aa3-9f25-c84c485e12bd",
+      "name": "Is Empty?"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "text": "=✅ *Fix applied and system OK.*\n*Incident:* {{ ($node[\"Prepare Incident Card\"].json.incident_id || '').slice(0,3) }}\n*Command:* `{{ ($node[\"Harden Command\"].json.cmd || '').trim() }}`\n*Status:* {{ $node[\"Post-Fix HealthCheck\"].json.statusCode, $node[\"Post-Fix HealthCheck\"].json.statusMessage }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3632,
+        -240
+      ],
+      "id": "bc1a1930-2840-42aa-a36f-08e1a6bd05cf",
+      "name": "Notify Fix Success",
+      "webhookId": "73562b1f-c015-45d0-a712-ed7c51c37b86",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "text": "=❌ *Fix applied but health check still fails*\n*Incident:* {{ ($node[\"Prepare Incident Card\"].json.incident_id || '').slice(0,3) }}\n*Command:* `{{ ($node[\"Harden Command\"].json.cmd || '').trim() }}`\n*Status:* {{$node[\"Post-Fix HealthCheck\"].json.statusCode}} {{$node[\"Post-Fix HealthCheck\"].json.statusMessage || ''}}\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3632,
+        32
+      ],
+      "id": "07476e53-7ebb-4f52-a2b6-e9c304a567e5",
+      "name": "Notify Fix Failure",
+      "webhookId": "73562b1f-c015-45d0-a712-ed7c51c37b86",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, ai_cause, ai_recommendation, ai_confidence, ai_json)\nVALUES ($1, 'ai_decision', 'gemini', $2, $3, $4, $5::jsonb)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET ai_cause = EXCLUDED.ai_cause,\n    ai_recommendation = EXCLUDED.ai_recommendation,\n    ai_confidence = EXCLUDED.ai_confidence,\n    ai_json = EXCLUDED.ai_json,\n    checked_at = NOW();",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Prepare Incident Card\"].json.incident_id,                 \n  String($node[\"Parse AI JSON\"].json.class || 'unknown'),           \n  String($node[\"Parse AI JSON\"].json.suggestion_cmd || 'N/A'),      \n  Number($node[\"Parse AI JSON\"].json.confidence ?? 0),              \n  JSON.stringify($node[\"Parse AI JSON\"].json)                       \n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1376,
+        -400
+      ],
+      "id": "b86e7dad-eac3-43a1-aecb-67b4846cfcc2",
+      "name": "DB: Log AI Diagnose",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, status_code, status_message, host, ok)\nVALUES ($1, 'health_ok', 'healthcheck', $2, $3, $4, $5);\n\nSELECT * FROM public.health_history\nORDER BY id DESC\nLIMIT 10;",
+        "options": {
+          "queryReplacement": "={{ [\n  $node[\"Make Incident ID\"].json.incident_id,\n  ($node[\"HealthCheck\"].json.statusCode || 0),\n  ($node[\"HealthCheck\"].json.statusMessage || '').toString(),\n  \"guestbook.127.0.0.1.nip.io\",\n  (($node[\"HealthCheck\"].json.statusCode || 500) < 400)\n] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        -400
+      ],
+      "id": "14bdf808-b3ba-40c2-b961-1a17ff3adeb3",
+      "name": "DB: Log HealthCheck",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, approved, user_id, user_name, channel, message_ts)\nVALUES ($1, 'approval', 'slack', $2, $3, $4, $5, $6, $7)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET action      = EXCLUDED.action,\n    approved    = EXCLUDED.approved,\n    user_id     = EXCLUDED.user_id,\n    user_name   = EXCLUDED.user_name,\n    channel     = EXCLUDED.channel,\n    message_ts  = EXCLUDED.message_ts,\n    checked_at  = NOW();\n",
+        "options": {
+          "queryReplacement": "={{\n(() => {\n  const iid   = $node[\"Prepare Incident Card\"].json?.incident_id || '';\n  const conf  = $node[\"Confirm Fix in Slack\"].json || {};\n\n  const action   = conf.apply ? 'apply' : 'cancel';\n  const approved = Boolean(conf.apply);\n\n  const user_id   = conf.user?.id || '';\n  const user_name = conf.user?.profile?.real_name\n                 || conf.user?.real_name\n                 || conf.user?.profile?.display_name\n                 || conf.user?.name\n                 || conf.user?.username\n                 || '';\n\n  const channel   = conf.channel?.id || conf.channel || '';\n  const ts        = conf.ts || conf.message_ts || '';\n\n  return [iid, action, approved, user_id, user_name, channel, ts];\n})()\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2192,
+        -192
+      ],
+      "id": "4b80d995-1949-42b0-b6be-44dd1daef923",
+      "name": "DB: Log Approval",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, status_code, status_message, host, ok)\nVALUES ($1, 'postfix_health', 'healthcheck', $2, $3, $4, $5);",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Prepare Incident Card\"].json.incident_id,\n  $node[\"Post-Fix HealthCheck\"].json.statusCode || 0,\n  $node[\"Post-Fix HealthCheck\"].json.statusMessage || '',\n  (() => { try { return new URL($node[\"Prepare Incident Card\"].json.check_url || '').host } catch(e){ return ($node[\"Prepare Incident Card\"].json.check_url || '') } })(),\n  ($node[\"Post-Fix HealthCheck\"].json.statusCode || 500) < 400\n].join(\",\")\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3376,
+        -96
+      ],
+      "id": "562d678b-5b5a-4839-ae21-f04c3339c683",
+      "name": "DB: Log PostFix Health",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, ok, status_code, status_message, notes)\nVALUES ($1, 'execute_fail', 'k8s', 'kubectl', FALSE, $2, $3, $4::jsonb)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET ok = EXCLUDED.ok,\n    status_code = EXCLUDED.status_code,\n    status_message = EXCLUDED.status_message,\n    notes = EXCLUDED.notes,\n    checked_at = NOW();\n",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Prepare Incident Card\"].json.incident_id,\n  parseInt($json.exitCode ?? 1, 10),                                   \n  String($json.stderr || $json.stdout || '').slice(0, 400),          \n  JSON.stringify({                                                    \n    cmd: $node[\"Harden Command\"].json.cmd || '',\n    stdout: String($json.stdout || '').slice(0, 2000),\n    stderr: String($json.stderr || '').slice(0, 2000)\n  })\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2464,
+        -64
+      ],
+      "id": "10af7eb7-e79c-4389-929b-96d7060e6583",
+      "name": "DB: Log Execute Fail",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, ok, status_code, status_message, ai_recommendation)\nVALUES ($1, 'execute_fix', 'k8s', 'kubectl', TRUE, $2, $3, $4)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET ok = EXCLUDED.ok,\n    status_code = EXCLUDED.status_code,\n    status_message = EXCLUDED.status_message,\n    ai_recommendation = EXCLUDED.ai_recommendation,\n    checked_at = NOW();",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Prepare Incident Card\"].json.incident_id,\n  parseInt($json.exitCode ?? 0, 10),                                 \n  String($json.stderr || $json.stdout || '').slice(0, 400),           \n  String($node[\"Harden Command\"].json.cmd || '')                     \n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2464,
+        -336
+      ],
+      "id": "43fe6594-deac-4c8c-a612-0481a6e89682",
+      "name": "DB: Log Execute Success",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, notes)\nVALUES ($1, 'evidence_ready', 'gatherlogs', $2)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET notes = EXCLUDED.notes, checked_at = NOW();\n",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Make Incident ID\"].json.incident_id,\n  JSON.stringify({\n    summary: String($node[\"Assemble Evidence\"].json.probe_summary || '').slice(0, 2048)\n  })\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        576,
+        -400
+      ],
+      "id": "a44c4c4f-3f7c-43c6-a0a6-7fb5755c2894",
+      "name": "DB: Log Evidence",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, notes)\nVALUES ($1, 'manual_resolution', 'slack', 'manual', $2::jsonb)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET action = EXCLUDED.action,\n    notes = EXCLUDED.notes,\n    checked_at = NOW();",
+        "options": {
+          "queryReplacement": "={{\n(() => {\n  const iid = $node[\"Prepare Incident Card\"].json.incident_id || '';\n  const payload = {\n    user: $node[\"Confirm Fix in Slack\"].json?.user ?? null,\n    summary: $node[\"Parse AI JSON\"].json?.summary ?? '',\n    suggestion: $node[\"Parse AI JSON\"].json?.suggestion_cmd ?? '',\n    logs: String($node[\"Assemble Evidence\"].json?.probe_summary ?? '').slice(0, 1024)\n  };\n  return [iid, JSON.stringify(payload)];\n})()\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2112,
+        -368
+      ],
+      "id": "b79920d8-f863-443a-9d4e-b0c3f9c8081a",
+      "name": "DB: Log Manual",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "text": "={{\n(() => {\n  const iid = $node[\"Prepare Incident Card\"].json?.incident_id || '';\n  const iidShort = iid.slice(0, 3);\n\n  const u = $node[\"Confirm Fix in Slack\"].json?.user || {};\n  const userDisplay =\n    u.profile?.real_name ||\n    u.real_name ||\n    u.profile?.display_name ||\n    u.name ||\n    u.username ||\n    u.id ||\n    '';\n\n  const raw = String($node[\"Assemble Evidence\"].json?.probe_summary || '');\n\n  const sec = (title) => {\n    const re = new RegExp(`---\\\\s*${title}\\\\s*---[\\\\s\\\\S]*?(?=\\\\n---|$)`, 'i');\n    const m = raw.match(re);\n    return m ? m[0] : '';\n  };\n\n  const eventsRaw = sec('LAST EVENTS');\n  const eventsLines = eventsRaw\n    .split('\\n')\n    .filter(l => /(Warning|Failed|BackOff|ErrImagePull|ImagePullBackOff)/i.test(l))\n    .slice(-12) // en son 12 satır\n    .join('\\n')\n    .trim();\n\n  const logsRaw = sec('LAST LOGS');\n  const logsBody = logsRaw.replace(/^[\\s\\S]*?---\\s*LAST LOGS[^\\n]*\\n/i, '');\n  const logsTail = logsBody\n    .split('\\n')\n    .slice(-30)\n    .join('\\n')\n    .trim();\n\n  let signals = eventsLines || logsTail;\n  if (!signals) {\n    // fallback: RS TABLE ya da ilk 600 karakter\n    const rs = sec('RS TABLE');\n    signals = rs ? rs : raw.slice(0, 600);\n  }\n  const signalsTrim = signals.slice(0, 1600);\n  const truncated = signals.length > 1600 ? '\\n…(truncated)' : '';\n\n  const summary = $node[\"Parse AI JSON\"].json?.summary || 'N/A';\n  const suggestion = $node[\"Parse AI JSON\"].json?.suggestion_cmd || 'N/A';\n\n  const userLine = userDisplay ? `\\nUser: ${userDisplay}` : '';\n\n  return `:warning: Manual resolution selected (Incident: ${iidShort}).${userLine}\nHere is the latest context:\n• *AI Summary:* ${summary}\n• *AI Suggestion:* \\`${suggestion}\\`\n• *Signals:*\n\\`\\`\\`\n${signalsTrim}${truncated}\n\\`\\`\\``;\n})()\n}}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2272,
+        -368
+      ],
+      "id": "bb05cffc-8a24-4f39-8934-e133c41480a9",
+      "name": "Notify Manual Choice",
+      "webhookId": "73562b1f-c015-45d0-a712-ed7c51c37b86",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, notes)\nVALUES ($1, 'cmd_error', 'pipeline', 'empty_cmd', $2::jsonb)\nON CONFLICT (incident_id, phase) DO UPDATE\nSET action = EXCLUDED.action,\n    notes  = EXCLUDED.notes,\n    checked_at = NOW();",
+        "options": {
+          "queryReplacement": "={{\n(() => {\n  const iid = $node[\"Prepare Incident Card\"].json?.incident_id || '';\n\n  const summary    = $node[\"Parse AI JSON\"].json?.summary || '';\n  const suggestion = $node[\"Parse AI JSON\"].json?.suggestion_cmd || 'N/A';\n\n  const raw = String($node[\"Assemble Evidence\"].json?.probe_summary || '');\n  const evidenceSnippet = raw.slice(0, 1200);\n\n  const payload = {\n    reason: 'Empty command generated / not safe to auto-apply',\n    summary,\n    suggestion,\n    evidence: evidenceSnippet\n  };\n\n  return [iid, JSON.stringify(payload)];\n})()\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1744,
+        -400
+      ],
+      "id": "7dcd28bc-36c7-4099-8cd1-04dd8102d862",
+      "name": "DB: Log Cmd Error",
+      "credentials": {
+        "postgres": {
+          "id": "NWMHs8bBwmKaSkCe",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cmd = String($node[\"Harden Command\"].json.cmd || \"\");\nconst isSvcPatch = /kubectl\\b.*\\bpatch\\s+svc\\b/i.test(cmd);\nconst touchesPortOrSelector = /ports|selector/i.test(cmd);\n\nconst was200 = ($node[\"HealthCheck\"].json.statusCode >= 200 && $node[\"HealthCheck\"].json.statusCode < 300);\nconst now200  = ($json.statusCode >= 200 && $json.statusCode < 300); // Fix sonrası mini healthcheck nodundan gelsin\nconst endpointsReady = /ADD:\\S+/i.test($node[\"GatherLogs\"].json.stdout || \"\") || /addresses:/.test($node[\"GatherLogs\"].json.stdout || \"\");\n\nlet needSync = false;\nif (isSvcPatch && touchesPortOrSelector && !now200 && endpointsReady) {\n  needSync = true;\n}\n\nreturn { json: { needSync } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2576,
+        -208
+      ],
+      "id": "56974739-1eef-4516-a833-263e2cd893b5",
+      "name": "Post-Fix Sync Guard"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8671c4b7-251d-4e23-80cd-0521c188748f",
+              "leftValue": "={{ $json.needSync }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2736,
+        -208
+      ],
+      "id": "4c9fda52-280e-45e5-9290-3fb8485e8f38",
+      "name": "Need Ingress Sync?"
+    },
+    {
+      "parameters": {
+        "command": "=sh -lc 'kubectl -n ingress-nginx get deploy ingress-nginx-controller >/dev/null 2>&1 && kubectl -n ingress-nginx rollout restart deploy/ingress-nginx-controller || echo \"ingress-nginx controller not found, skip\"'\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        -400
+      ],
+      "id": "e1f7d9b6-b4c9-447f-a642-1e64fe680c9e",
+      "name": "Sync Ingress",
+      "executeOnce": true,
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, notes)\nVALUES (\n  $1,\n  'postfix_sync',\n  'workflow',\n  'ingress_restart',\n  jsonb_build_object(\n    'stdout', left($2, 400),\n    'stderr', left($3, 400),\n    'reason', $4\n  )\n);",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Prepare Incident Card\"].json.incident_id,\n  ($json.stdout || '').toString(),\n  ($json.stderr || '').toString(),\n  ($node[\"Post-Fix Sync Guard\"].json.reason || 'n/a')\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2960,
+        -576
+      ],
+      "id": "76ac836c-d26d-46a0-996d-4add4711f341",
+      "name": "DB: Log PostFix Sync",
+      "credentials": {
+        "postgres": {
+          "id": "6ZiMzReRtKZFxaiz",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.health_history\n(incident_id, phase, source, action, ok, notes)\nVALUES (\n  $1,\n  'postfix_sync',\n  'workflow',\n  'ingress_restart',\n  FALSE,\n  jsonb_build_object(\n    'stdout', left($2, 400),\n    'stderr', left($3, 400),\n    'reason', $4,\n    'exitCode', $5\n  )\n);",
+        "options": {
+          "queryReplacement": "={{\n[\n  $node[\"Prepare Incident Card\"].json.incident_id,\n  ($node[\"Sync Ingress\"].json.stdout || '').toString(),\n  ($node[\"Sync Ingress\"].json.stderr || '').toString(),\n  ($node[\"Post-Fix Sync Guard\"].json.reason || 'n/a'),\n  ($node[\"Sync Ingress\"].json.exitCode ?? null)\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2960,
+        -272
+      ],
+      "id": "720625c1-bfab-4d31-931f-d212f6e3c0c5",
+      "name": "DB: Log PostFix Sync Fail",
+      "credentials": {
+        "postgres": {
+          "id": "6ZiMzReRtKZFxaiz",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "n8n-notificitations",
+          "mode": "name"
+        },
+        "text": "=❌ Ingress sync failed.\n*Incident:* {{ ($node[\"Prepare Incident Card\"].json.incident_id || '').slice(0,3) }}\n*Command:* `kubectl rollout restart deploy/ingress-nginx-controller -n ingress-nginx`\n*Exit code:* {{ $node[\"Sync Ingress\"].json.exitCode }}\n\n*Error output (tail)*:\n```{{ ($node[\"Sync Ingress\"].json.stderr || $node[\"Sync Ingress\"].json.stdout || '').slice(0,400) }}```\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3168,
+        -272
+      ],
+      "id": "26d6705c-0908-4521-a0fb-344017d1bd94",
+      "name": "Notify PostFix Sync Error",
+      "webhookId": "4f333278-dfc6-460b-8b52-bc32f5cf88f4",
+      "credentials": {
+        "slackApi": {
+          "id": "iZA33tF1gYuoZo0Q",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Make Incident ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OK?": {
+      "main": [
+        [
+          {
+            "node": "DB: Log HealthCheck",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GatherLogs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HealthCheck": {
+      "main": [
+        [
+          {
+            "node": "OK?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Make Incident ID": {
+      "main": [
+        [
+          {
+            "node": "HealthCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation": {
+      "main": [
+        [
+          {
+            "node": "DB: Log Manual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB: Log Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Post-Fix HealthCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Incident Card": {
+      "main": [
+        [
+          {
+            "node": "Gemini Diagnose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Evidence": {
+      "main": [
+        [
+          {
+            "node": "DB: Log Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GatherLogs": {
+      "main": [
+        [
+          {
+            "node": "Assemble Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Derive Target": {
+      "main": [
+        [
+          {
+            "node": "Prepare Incident Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Diagnose": {
+      "main": [
+        [
+          {
+            "node": "Parse AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI JSON": {
+      "main": [
+        [
+          {
+            "node": "DB: Log AI Diagnose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Harden Command": {
+      "main": [
+        [
+          {
+            "node": "Is Empty?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Fix in Slack": {
+      "main": [
+        [
+          {
+            "node": "Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post-Fix HealthCheck": {
+      "main": [
+        [
+          {
+            "node": "DB: Log PostFix Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Suggested Fix": {
+      "main": [
+        [
+          {
+            "node": "DB: Log Execute Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB: Log Execute Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Healthy?": {
+      "main": [
+        [
+          {
+            "node": "Notify Fix Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Fix Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Empty?": {
+      "main": [
+        [
+          {
+            "node": "DB: Log Cmd Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirm Fix in Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log AI Diagnose": {
+      "main": [
+        [
+          {
+            "node": "Harden Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log HealthCheck": {
+      "main": [
+        []
+      ]
+    },
+    "DB: Log Evidence": {
+      "main": [
+        [
+          {
+            "node": "Derive Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log Execute Success": {
+      "main": [
+        [
+          {
+            "node": "Post-Fix Sync Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log Approval": {
+      "main": [
+        [
+          {
+            "node": "Apply Suggested Fix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log Execute Fail": {
+      "main": [
+        [
+          {
+            "node": "Notify Execute Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log PostFix Health": {
+      "main": [
+        [
+          {
+            "node": "Is Healthy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log Manual": {
+      "main": [
+        [
+          {
+            "node": "Notify Manual Choice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Command Error": {
+      "main": [
+        []
+      ]
+    },
+    "DB: Log Cmd Error": {
+      "main": [
+        [
+          {
+            "node": "Notify Command Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post-Fix Sync Guard": {
+      "main": [
+        [
+          {
+            "node": "Need Ingress Sync?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Need Ingress Sync?": {
+      "main": [
+        [
+          {
+            "node": "Sync Ingress",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync Ingress": {
+      "main": [
+        [
+          {
+            "node": "DB: Log PostFix Sync",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB: Log PostFix Sync Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log PostFix Sync": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB: Log PostFix Sync Fail": {
+      "main": [
+        [
+          {
+            "node": "Notify PostFix Sync Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e7d52d0f-2b20-472c-8f87-e8067610461f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "31cb82539effe32eb1bdfca39caef3ea6ff1f941a3144dd968dd04be785592c4"
+  },
+  "id": "0ScDqOQvnTG35HFp",
+  "tags": []
+}
