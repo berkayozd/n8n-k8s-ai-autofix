@@ -57,7 +57,7 @@ kubectl apply -k k8s/overlays/svc-bad
 ```
 kubectl apply -k k8s/overlays/port-bad
 ```
-P.S: For cache
+ P.S: For cache
 ```
 kubectl -n ingress-nginx rollout restart deploy/ingress-nginx-controller
 ```
