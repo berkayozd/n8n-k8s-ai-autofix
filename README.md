@@ -66,7 +66,7 @@ Copy and edit:
 cp .env.example .env
 ```
 .env keys (example):
-
+```
 SLACK_WEBHOOK_URL=...
 
 PG_HOST=localhost
@@ -76,7 +76,7 @@ PG_USER=postgres
 PG_PASSWORD=...
 
 KUBECONFIG=/home/node/.kube/config
-
+```
 📸 Evidence for docs
 Place screenshots in docs/screenshots/:
 
