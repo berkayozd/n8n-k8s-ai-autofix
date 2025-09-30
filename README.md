@@ -1,3 +1,9 @@
+# n8n + Kubernetes Auto-Triage (with Gemini)
+
+An automated incident triage & auto-fix workflow built on **n8n**, targeting a demo **Kubernetes guestbook** app.
+It collects evidence (SVC/Endpoints/Deployment/RS/Logs/Events), runs LLM-based diagnosis (Gemini),
+asks for approval in Slack, applies the fix, and verifies health post-fix.
+
 ✅ What it fixes (scenarios)
 
 Bad image tag (ErrImagePull/ImagePullBackOff) → set valid image
