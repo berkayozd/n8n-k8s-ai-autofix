@@ -56,6 +56,7 @@ kubectl apply -k k8s/overlays/svc-bad
 3) port-bad (targetPort mismatch)
 ```
 kubectl apply -k k8s/overlays/port-bad
+kubectl -n ingress-nginx rollout restart deploy/ingress-nginx-controller
 ```
 n8n flow: collects evidence → AI diagnosis → asks approval in Slack → applies patch → post-fix health check (and optional ingress sync).
 
