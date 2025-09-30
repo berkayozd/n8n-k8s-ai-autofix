@@ -78,8 +78,10 @@ PG_PASSWORD=...
 KUBECONFIG=/home/node/.kube/config
 ```
 📸 Evidence for docs
+
 Place screenshots in docs/screenshots/:
 
 📝 Notes
+
 .env and .n8n/ are ignored by Git; share only .env.example.
 Ingress sync step is guarded; only runs when needed.
