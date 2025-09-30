@@ -27,9 +27,9 @@ See /k8s, /tools/n8n, /docs.
 🚀 Quick start
 
 Deploy healthy baseline
-```bash
+```
 kubectl apply -k k8s/overlays/good
-```bash
+```
 
 Run n8n stack
 ```
