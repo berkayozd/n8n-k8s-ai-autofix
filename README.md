@@ -1,24 +1,71 @@
-# n8n + Kubernetes Auto-Triage (with Gemini)
+✅ What it fixes (scenarios)
 
-An automated incident triage & auto-fix workflow built on **n8n**, targeting a demo **Kubernetes guestbook** app.
-It collects evidence (SVC/Endpoints/Deployment/RS/Logs/Events), runs LLM-based diagnosis (Gemini),
-asks for approval in Slack, applies the fix, and verifies health post-fix.
+Bad image tag (ErrImagePull/ImagePullBackOff) → set valid image
 
-## What it fixes (scenarios)
-1. **Bad image tag** (ErrImagePull/ImagePullBackOff) → set valid image
-2. **Service selector mismatch** → patch Service selector
-3. **Service targetPort mismatch** → patch Service ports
-   - If ingress cache causes stale routing, workflow optionally syncs ingress (nginx-controller reload).
+Service selector mismatch → patch Service selector
 
-## High-level flow
-- HealthCheck → GatherLogs → AssembleEvidence → Gemini Diagnose → Slack Approval → Apply Fix
-- Post-fix health check → (optional) Ingress sync → Notify success/failure
+Service targetPort mismatch → patch Service ports
 
-## Repository layout
-See `/k8s`, `/tools/n8n`, `/docs`.
+If ingress cache causes stale routing, workflow optionally syncs ingress (nginx-controller reload).
 
-## Quick start
-```bash
-kubectl apply -k k8s/overlays/good 
-docker-compose up -d 
-# update .env, Slack webhook etc.
+🔁 High-level flow
+
+HealthCheck → GatherLogs → AssembleEvidence → Gemini Diagnose → Slack Approval → Apply Fix
+
+Post-fix health check → (optional) Ingress sync → Notify success/failure
+
+📂 Repository layout
+
+See /k8s, /tools/n8n, /docs.
+
+🚀 Quick start
+
+Deploy healthy baseline
+
+kubectl apply -k k8s/overlays/good
+
+
+Run n8n stack
+
+docker-compose up -d
+# update .env (Slack webhook, DB, K8S context) before run
+
+
+Verify
+
+kubectl get deploy,svc,pods -n guestbook
+
+🧪 Demo overlays (break → let n8n fix)
+
+1) image-bad
+
+kubectl apply -k k8s/overlays/image-bad
+
+
+Rollback (return to healthy):
+
+kubectl apply -k k8s/overlays/good
+
+
+2) svc-bad (selector mismatch)
+
+kubectl apply -k k8s/overlays/svc-bad
+
+
+Rollback:
+
+kubectl apply -k k8s/overlays/good
+
+
+3) port-bad (targetPort mismatch)
+
+kubectl apply -k k8s/overlays/port-bad
+
+
+Rollback:
+
+kubectl apply -k k8s/overlays/good
+
+
+n8n flow: collects evidence → AI diagnosis → asks approval in Slack → applies patch → post-fix health check (and optional ingress sync).
+
