@@ -57,7 +57,8 @@ kubectl apply -k k8s/overlays/svc-bad
 ```
 kubectl apply -k k8s/overlays/port-bad
 ```
- P.S: For cache
+ℹ️ Ingress cache note
+In some cases, the old routing may remain due to the ingress cache. In this case:
 ```
 kubectl -n ingress-nginx rollout restart deploy/ingress-nginx-controller
 ```
