@@ -1,0 +1,9 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: guestbook
+spec:
+  type: ClusterIP
+  selector: { app: guestbook, tier: frontend }
+  ports: [{ port: 80, targetPort: 80 }]

@@ -1,0 +1,20 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-leader
+  namespace: guestbook
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redis, role: leader, tier: backend }
+  template:
+    metadata:
+      labels: { app: redis, role: leader, tier: backend }
+    spec:
+      containers:
+      - name: leader
+        image: redis:6-alpine
+        args: ["--appendonly","yes"]
+        ports:
+        - containerPort: 6379
+        readinessProbe: { tcpSocket: { port: 6379 }, initialDelaySeconds: 3, periodSeconds: 5 }

@@ -1,0 +1,8 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: redis-leader
+  namespace: guestbook
+spec:
+  selector: { app: redis, role: leader, tier: backend }
+  ports: [{ port: 6379, targetPort: 6379 }]

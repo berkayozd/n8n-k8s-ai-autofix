@@ -1,0 +1,46 @@
+﻿services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: n8n
+      POSTGRES_DB: n8n
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  n8n:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      context: ./tools/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=true
+    depends_on:
+      - db
+    volumes:
+      - type: bind
+        source: "C:/Users/ghost/.kube"
+        target: /home/node/.kube
+        read_only: true
+      - n8n_data:/home/node/.n8n
+      - type: bind
+        source: "C:/DevOps Tools/n8n-devops-mini"
+        target: /workspace
+        read_only: true
+
+volumes:
+  db_data: {}
+  n8n_data: {}

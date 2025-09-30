@@ -1,0 +1,8 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: redis-follower
+  namespace: guestbook
+spec:
+  selector: { app: redis, role: follower, tier: backend }
+  ports: [{ port: 6379, targetPort: 6379 }]
