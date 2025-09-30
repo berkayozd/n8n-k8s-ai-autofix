@@ -4,7 +4,7 @@ An automated incident triage & auto-fix workflow built on **n8n**, targeting a d
 It collects evidence (SVC/Endpoints/Deployment/RS/Logs/Events), runs LLM-based diagnosis (Gemini),
 asks for approval in Slack, applies the fix, and verifies health post-fix.
 
-✅ What it fixes (scenarios)
+✅ **What it fixes (scenarios)**
 
 Bad image tag (ErrImagePull/ImagePullBackOff) → set valid image
 
@@ -14,17 +14,17 @@ Service targetPort mismatch → patch Service ports
 
 If ingress cache causes stale routing, workflow optionally syncs ingress (nginx-controller reload).
 
-🔁 High-level flow
+🔁 **High-level flow**
 
 HealthCheck → GatherLogs → AssembleEvidence → Gemini Diagnose → Slack Approval → Apply Fix
 
 Post-fix health check → (optional) Ingress sync → Notify success/failure
 
-📂 Repository layout
+📂 **Repository layout**
 
 See /k8s, /tools/n8n, /docs.
 
-🚀 Quick start
+🚀 **Quick start**
 
 Deploy healthy baseline
 ```
@@ -41,7 +41,7 @@ Verify
 kubectl get deploy,svc,pods -n guestbook
 ```
 
-🧪 Demo overlays (break → let n8n fix)
+🧪 **Demo overlays (break → let n8n fix)**
 
 1) image-bad
 ```
