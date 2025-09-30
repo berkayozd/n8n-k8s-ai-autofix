@@ -4,7 +4,7 @@ An automated incident triage & auto-fix workflow built on **n8n**, targeting a d
 It collects evidence (SVC/Endpoints/Deployment/RS/Logs/Events), runs LLM-based diagnosis (Gemini),
 asks for approval in Slack, applies the fix, and verifies health post-fix.
 
-✅ What it fixes (scenarios)
+ ✅ What it fixes (scenarios) 
 
 Bad image tag (ErrImagePull/ImagePullBackOff) → set valid image
 
