@@ -59,3 +59,24 @@ kubectl apply -k k8s/overlays/port-bad
 ```
 n8n flow: collects evidence → AI diagnosis → asks approval in Slack → applies patch → post-fix health check (and optional ingress sync).
 
+⚙️ Environment
+
+Copy and edit:
+```
+cp .env.example .env
+```
+
+.env keys (example):
+
+# Slack
+SLACK_WEBHOOK_URL=...
+
+# Postgres (logging)
+PG_HOST=localhost
+PG_PORT=5432
+PG_DB=n8n_logs
+PG_USER=postgres
+PG_PASSWORD=...
+
+# K8s (kubectl in n8n container)
+KUBECONFIG=/home/node/.kube/config
