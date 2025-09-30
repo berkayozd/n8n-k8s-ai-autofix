@@ -28,9 +28,7 @@ kubectl apply -k k8s/overlays/good
 Run n8n stack
 
 docker-compose up -d
-# update .env (Slack webhook, DB, K8S context) before run
-
-
+ 
 Verify
 
 kubectl get deploy,svc,pods -n guestbook
