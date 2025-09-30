@@ -4,7 +4,7 @@ An automated incident triage & auto-fix workflow built on **n8n**, targeting a d
 It collects evidence (SVC/Endpoints/Deployment/RS/Logs/Events), runs LLM-based diagnosis (Gemini),
 asks for approval in Slack, applies the fix, and verifies health post-fix.
 
- ✅ What it fixes (scenarios) 
+✅ What it fixes (scenarios)
 
 Bad image tag (ErrImagePull/ImagePullBackOff) → set valid image
 
@@ -32,44 +32,30 @@ kubectl apply -k k8s/overlays/good
 ```
 
 Run n8n stack
-
+```
 docker-compose up -d
- 
-Verify
+ ```
 
+Verify
+```
 kubectl get deploy,svc,pods -n guestbook
+```
 
 🧪 Demo overlays (break → let n8n fix)
 
 1) image-bad
-
+```
 kubectl apply -k k8s/overlays/image-bad
-
-
-Rollback (return to healthy):
-
-kubectl apply -k k8s/overlays/good
-
+```
 
 2) svc-bad (selector mismatch)
-
+```
 kubectl apply -k k8s/overlays/svc-bad
-
-
-Rollback:
-
-kubectl apply -k k8s/overlays/good
-
+```
 
 3) port-bad (targetPort mismatch)
-
+```
 kubectl apply -k k8s/overlays/port-bad
-
-
-Rollback:
-
-kubectl apply -k k8s/overlays/good
-
-
+```
 n8n flow: collects evidence → AI diagnosis → asks approval in Slack → applies patch → post-fix health check (and optional ingress sync).
 
