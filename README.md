@@ -18,7 +18,8 @@ asks for approval in Slack, applies the fix, and verifies health post-fix.
 See `/k8s`, `/tools/n8n`, `/docs`.
 
 ## Quick start
+# update .env, Slack webhook etc.
 ```bash
 kubectl apply -k k8s/overlays/good
 docker-compose up -d
-# update .env, Slack webhook etc.
+
